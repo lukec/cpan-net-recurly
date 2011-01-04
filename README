@@ -1,0 +1,36 @@
+Net::Recurly - Recurly client library
+
+SYNOPSIS
+
+  use Net::Recurly;
+
+  my $R = Net::Recurly->new(
+      username => 'api-test@your-domain.com',
+      password => 'your-password',
+      subdomain => 'your-domain',
+  );
+  my $subscription = $r->get_subscription('your-account-code');
+
+DESCRIPTION
+
+Net::Recurly is a thin layer around the Recurly.com API.  It currently only
+supports GET requests, although supporting the API more fully is planned.
+
+The XML responses are returned as a hash, using XML::Simple.
+
+SEE ALSO
+
+The Recurly API documentation: http://docs.recurly.com/
+
+BUGS AND DEFECTS
+
+This module is a simple first draft, it is not complete, it does not have tests.
+
+YMMV, IANAL, Patches Welcome.
+
+COPYRIGHT
+
+Copyright 2011 Luke Closs.
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
