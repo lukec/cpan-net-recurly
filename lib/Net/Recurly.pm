@@ -125,7 +125,7 @@ sub _build_url {
 
 sub _build_ua {
     my $self = shift;
-    my $ua = LWP::UserAgent->new(agent => "Net::Recurly - $VERSION");
+    my $ua = LWP::UserAgent->new(agent => "Net::Recurly");
     $ua->credentials(
         $self->api_host . ':443',
         'default',
