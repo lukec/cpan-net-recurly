@@ -19,13 +19,12 @@ sub get_account {
 
 sub create_account {
     my $self = shift;
-    my $acct_code = shift;
     my %args = @_;
 
     my $xml = <<EOT;
 <?xml version="1.0"?>
 <account>
-  <account_code>$acct_code</account_code>
+  <account_code>$args{acct_code}</account_code>
   <username>$args{email}</username>
   <email>$args{email}</email>
 </account>
