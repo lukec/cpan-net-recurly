@@ -17,6 +17,22 @@ sub get_account {
     return $self->get("/accounts/$acct_code");
 }
 
+sub create_account {
+    my $self = shift;
+    my $acct_code = shift;
+    my %args = @_;
+
+    my $xml = <<EOT;
+<?xml version="1.0"?>
+<account>
+  <account_code>$acct_code</account_code>
+  <username>$args{email}</username>
+  <email>$args{email}</email>
+</account>
+EOT
+    return $self->post("/accounts", $xml);
+}
+
 sub get_billing_info {
     my $self = shift;
     my $acct_code = shift;
@@ -103,6 +119,21 @@ sub get {
     die "GET $url failed ($code - " . $resp->content . ")\n";
 }
 
+sub post {
+    my $self = shift;
+    my $path = shift;
+    my $xml  = shift;
+
+    my $url = $self->_build_url($path);
+    my $req = HTTP::Request->new(POST => $url,
+        [ 'Content-Type' => 'application/xml' ], $xml);
+    $req->authorization_basic($self->username, $self->password);
+    my $resp = $self->ua->request($req);
+    my $code = $resp->code;
+    return if $code =~ m/^2??$/;
+    die "POST $url failed ($code - " . $resp->content . ")\n";
+}
+
 sub delete {
     my $self = shift;
     my $path = shift;
@@ -114,7 +145,7 @@ sub delete {
     my $code = $resp->code;
     return if $code =~ m/^2??$/;
     return if $code == 404;
-    die "GET $url failed ($code - " . $resp->content . ")\n";
+    die "DELETE $url failed ($code - " . $resp->content . ")\n";
 }
 
 sub _build_url {
