@@ -4,8 +4,6 @@ use LWP::UserAgent;
 use HTTP::Request;
 use XML::Simple;
 
-our $VERSION = '0.001';
-
 has 'subdomain' => (is => 'ro', isa => 'Str', required => 1);
 has 'username'  => (is => 'ro', isa => 'Str', required => 1);
 has 'password'  => (is => 'ro', isa => 'Str', required => 1);
@@ -49,6 +47,13 @@ sub get_subscription {
     return $self->get("/accounts/$acct_code/subscription");
 }
 
+sub delete_subscription {
+    my $self = shift;
+    my $acct_code = shift;
+    return $self->delete("/accounts/$acct_code/subscription");
+}
+
+
 sub get_subscription_plan {
     my $self = shift;
     my $plan_code = shift;
@@ -85,7 +90,7 @@ sub get {
     my $self = shift;
     my $path = shift;
     
-    my $url = 'https://' . $self->api_host . $path;
+    my $url = $self->_build_url($path);
     my $req = HTTP::Request->new(GET => $url);
     $req->authorization_basic($self->username, $self->password);
     $req->header('Accept' => 'application/xml');
@@ -96,6 +101,26 @@ sub get {
     }
     return if $code == 404;
     die "GET $url failed ($code - " . $resp->content . ")\n";
+}
+
+sub delete {
+    my $self = shift;
+    my $path = shift;
+
+    my $url = $self->_build_url($path);
+    my $req = HTTP::Request->new(DELETE => $url);
+    $req->authorization_basic($self->username, $self->password);
+    my $resp = $self->ua->request($req);
+    my $code = $resp->code;
+    return if $code =~ m/^2??$/;
+    return if $code == 404;
+    die "GET $url failed ($code - " . $resp->content . ")\n";
+}
+
+sub _build_url {
+    my $self = shift;
+    my $path = shift;
+    return 'https://' . $self->api_host . $path;
 }
 
 sub _build_ua {
