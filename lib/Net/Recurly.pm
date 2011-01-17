@@ -21,14 +21,13 @@ sub create_account {
     my $self = shift;
     my %args = @_;
 
-    my $xml = <<EOT;
-<?xml version="1.0"?>
-<account>
-  <account_code>$args{acct_code}</account_code>
-  <username>$args{email}</username>
-  <email>$args{email}</email>
-</account>
-EOT
+    my $xml = q{<?xml version="1.0"?>\n<account>\n};
+    for my $arg ( qw/account_code username email first_name 
+                     last_name company_name accept_language/) {
+        next unless $args{$arg};
+        $xml .= "  <$arg>$args{$arg}</$arg>\n";
+    }
+    $xml .= "</account>\n";
     return $self->post("/accounts", $xml);
 }
 
