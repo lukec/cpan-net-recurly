@@ -21,7 +21,7 @@ sub create_account {
     my $self = shift;
     my %args = @_;
 
-    my $xml = q{<?xml version="1.0"?>\n<account>\n};
+    my $xml = qq{<?xml version="1.0"?>\n<account>\n};
     for my $arg ( qw/account_code username email first_name 
                      last_name company_name accept_language/) {
         next unless $args{$arg};
@@ -128,7 +128,7 @@ sub post {
     $req->authorization_basic($self->username, $self->password);
     my $resp = $self->ua->request($req);
     my $code = $resp->code;
-    return if $code =~ m/^2??$/;
+    return $resp if $code == 201;
     die "POST $url failed ($code - " . $resp->content . ")\n";
 }
 
