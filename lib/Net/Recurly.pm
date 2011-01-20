@@ -141,7 +141,7 @@ sub delete {
     $req->authorization_basic($self->username, $self->password);
     my $resp = $self->ua->request($req);
     my $code = $resp->code;
-    return if $code =~ m/^2??$/;
+    return if $code =~ m/^2\d\d$/;
     return if $code == 404;
     die "DELETE $url failed ($code - " . $resp->content . ")\n";
 }
