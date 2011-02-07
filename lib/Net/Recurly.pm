@@ -67,6 +67,12 @@ sub delete_subscription {
     return $self->delete("/accounts/$acct_code/subscription");
 }
 
+sub delete_account {
+    my $self = shift;
+    my $acct_code = shift;
+    return $self->delete("/accounts/$acct_code");
+}
+
 
 sub get_subscription_plan {
     my $self = shift;
