@@ -4,6 +4,8 @@ use LWP::UserAgent;
 use HTTP::Request;
 use XML::Simple;
 
+our $VERSION = '0.001';
+
 has 'subdomain' => (is => 'ro', isa => 'Str', required => 1);
 has 'username'  => (is => 'ro', isa => 'Str', required => 1);
 has 'password'  => (is => 'ro', isa => 'Str', required => 1);
@@ -17,24 +19,27 @@ sub get_account {
     return $self->get("/accounts/$acct_code");
 }
 
+# http://docs.recurly.com/api/accounts
+# required param: account_code
 sub create_account {
-    my $self = shift;
-    my %args = @_;
+    my ($self, $params) = @_;
 
-    my $xml = qq{<?xml version="1.0"?>\n<account>\n};
-    for my $arg ( qw/account_code username email first_name 
-                     last_name company_name accept_language/) {
-        next unless $args{$arg};
-        $xml .= "  <$arg>$args{$arg}</$arg>\n";
-    }
-    $xml .= "</account>\n";
-    return $self->post("/accounts", $xml);
+    return $self->post('/accounts', $params, 'account');
 }
 
 sub get_billing_info {
     my $self = shift;
     my $acct_code = shift;
     return $self->get("/accounts/$acct_code/billing_info");
+}
+
+# http://docs.recurly.com/api/billing-info
+# required params: first_name, last_name, credit_card.number, credit_card.verification_value
+# credit_card.year, credit_card.month
+sub set_billing_info {
+    my ($self, $acct_code, $params) = @_;
+
+    return $self->put("/accounts/$acct_code/billing_info", $params, 'billing_info');
 }
 
 sub get_charges {
@@ -61,18 +66,14 @@ sub get_subscription {
     return $self->get("/accounts/$acct_code/subscription");
 }
 
-sub delete_subscription {
-    my $self = shift;
-    my $acct_code = shift;
-    return $self->delete("/accounts/$acct_code/subscription");
-}
+# http://docs.recurly.com/api/subscriptions
+# required params: plan_code
+# CC and billing info required unless info is on file
+sub create_subscription {
+    my ($self, $acct_code, $params) = @_;
 
-sub delete_account {
-    my $self = shift;
-    my $acct_code = shift;
-    return $self->delete("/accounts/$acct_code");
+    return $self->post("/accounts/$acct_code/subscription", $params, 'subscription');
 }
-
 
 sub get_subscription_plan {
     my $self = shift;
@@ -107,60 +108,54 @@ sub get_account_transactions {
 }
 
 sub get {
-    my $self = shift;
-    my $path = shift;
-    
-    my $url = $self->_build_url($path);
-    my $req = HTTP::Request->new(GET => $url);
+    my ($self, $path) = @_;
+    return $self->req($path, 'GET');
+}
+
+sub post {
+    my ($self, $path, $params, $root_node) = @_;
+    return $self->req($path, 'POST', $params, $root_node);
+}
+
+sub put {
+    my ($self, $path, $params, $root_node) = @_;
+    return $self->req($path, 'PUT', $params, $root_node);
+}
+
+sub req {
+    my ($self, $path, $method, $body_args, $root_node) = @_;
+
+    $method ||= 'GET';
+
+    # build request
+    my $url = 'https://' . $self->api_host . $path;
+    my $req = HTTP::Request->new($method => $url);
     $req->authorization_basic($self->username, $self->password);
     $req->header('Accept' => 'application/xml');
+
+    # serialize body
+    my $body_serialized;
+    if ($body_args) {
+        my %xml_opts = ( NoAttr => 1 );
+        $xml_opts{RootName} = $root_node if $root_node;
+        $body_serialized = XMLout($body_args, %xml_opts);
+        $req->content($body_serialized);
+        $req->header('Content-Type', 'application/xml; charset=utf-8');
+    }
+
+    # do request
     my $resp = $self->ua->request($req);
     my $code = $resp->code;
-    if ($code == 200) {
+    if ($code =~ /^2\d\d$/) {
         return XMLin($resp->content);
     }
     return if $code == 404;
     die "GET $url failed ($code - " . $resp->content . ")\n";
 }
 
-sub post {
-    my $self = shift;
-    my $path = shift;
-    my $xml  = shift;
-
-    my $url = $self->_build_url($path);
-    my $req = HTTP::Request->new(POST => $url,
-        [ 'Content-Type' => 'application/xml' ], $xml);
-    $req->authorization_basic($self->username, $self->password);
-    my $resp = $self->ua->request($req);
-    my $code = $resp->code;
-    return $resp if $code == 201;
-    die "POST $url failed ($code - " . $resp->content . ")\n";
-}
-
-sub delete {
-    my $self = shift;
-    my $path = shift;
-
-    my $url = $self->_build_url($path);
-    my $req = HTTP::Request->new(DELETE => $url);
-    $req->authorization_basic($self->username, $self->password);
-    my $resp = $self->ua->request($req);
-    my $code = $resp->code;
-    return if $code =~ m/^[23]\d\d$/;
-    return if $code == 404;
-    die "DELETE $url failed ($code - " . $resp->content . ")\n";
-}
-
-sub _build_url {
-    my $self = shift;
-    my $path = shift;
-    return 'https://' . $self->api_host . $path;
-}
-
 sub _build_ua {
     my $self = shift;
-    my $ua = LWP::UserAgent->new(agent => "Net::Recurly");
+    my $ua = LWP::UserAgent->new(agent => "Net::Recurly - $VERSION");
     $ua->credentials(
         $self->api_host . ':443',
         'default',
@@ -182,6 +177,10 @@ __END__
 =head1 NAME
 
 Net::Recurly - Recurly client library
+
+=head1 VERSION
+
+version 0.001
 
 =head2 SYNOPSIS
 
