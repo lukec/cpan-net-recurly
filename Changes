@@ -1,3 +1,8 @@
+0.03
+* support for all methods in a generic method, serialization of XML
+  params for PUT/POST with XML::Simple, set_billing_info(),
+  create_subscription()
+
 0.02 - ?
 * add ability to delete subscriptions and accounts
 

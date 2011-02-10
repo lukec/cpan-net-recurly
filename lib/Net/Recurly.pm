@@ -4,8 +4,6 @@ use LWP::UserAgent;
 use HTTP::Request;
 use XML::Simple;
 
-our $VERSION = '0.001';
-
 has 'subdomain' => (is => 'ro', isa => 'Str', required => 1);
 has 'username'  => (is => 'ro', isa => 'Str', required => 1);
 has 'password'  => (is => 'ro', isa => 'Str', required => 1);
@@ -25,6 +23,12 @@ sub create_account {
     my ($self, $params) = @_;
 
     return $self->post('/accounts', $params, 'account');
+}
+
+sub delete_account {
+    my $self = shift;
+    my $acct_code = shift;
+    return $self->delete("/accounts/$acct_code");
 }
 
 sub get_billing_info {
@@ -64,6 +68,13 @@ sub get_subscription {
     my $self = shift;
     my $acct_code = shift;
     return $self->get("/accounts/$acct_code/subscription");
+}
+
+
+sub delete_subscription {
+    my $self = shift;
+    my $acct_code = shift;
+    return $self->delete("/accounts/$acct_code/subscription");
 }
 
 # http://docs.recurly.com/api/subscriptions
@@ -122,6 +133,11 @@ sub put {
     return $self->req($path, 'PUT', $params, $root_node);
 }
 
+sub delete {
+    my ($self, $path) = @_;
+    return $self->req($path, 'DELETE');
+}
+
 sub req {
     my ($self, $path, $method, $body_args, $root_node) = @_;
 
@@ -146,7 +162,7 @@ sub req {
     # do request
     my $resp = $self->ua->request($req);
     my $code = $resp->code;
-    if ($code =~ /^2\d\d$/) {
+    if ($code =~ /^[23]\d\d$/) {
         return XMLin($resp->content);
     }
     return if $code == 404;
@@ -155,7 +171,7 @@ sub req {
 
 sub _build_ua {
     my $self = shift;
-    my $ua = LWP::UserAgent->new(agent => "Net::Recurly - $VERSION");
+    my $ua = LWP::UserAgent->new(agent => "Net::Recurly");
     $ua->credentials(
         $self->api_host . ':443',
         'default',
@@ -177,10 +193,6 @@ __END__
 =head1 NAME
 
 Net::Recurly - Recurly client library
-
-=head1 VERSION
-
-version 0.001
 
 =head2 SYNOPSIS
 
